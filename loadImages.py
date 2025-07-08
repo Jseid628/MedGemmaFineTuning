@@ -11,3 +11,6 @@ image = example['image']
 
 image.save("sample_image.png")
 print("Image saved to sample_image.png")
+
+print(dataset)
+print(dataset.features)
