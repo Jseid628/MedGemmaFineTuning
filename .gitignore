@@ -1,0 +1,40 @@
+# Hugging Face model/cache files
+*.bin
+*.pt
+*.ckpt
+*.safetensors
+
+# Datasets
+*.csv
+*.tsv
+*.json
+*.zip
+*.tar.gz
+*.h5
+*.npz
+*.npy
+
+# Hugging Face cache directory
+~/.cache/huggingface
+~/.huggingface
+
+# Local experiment folders (optional)
+checkpoints/
+logs/
+outputs/
+runs/
+wandb/
+
+# Python environment files
+__pycache__/
+*.py[cod]
+.env
+.venv/
+*.egg-info/
+*.ipynb_checkpoints/
+
+# VSCode config (optional)
+.vscode/
+
+# Conda environment lock files (optional)
+env.yml
