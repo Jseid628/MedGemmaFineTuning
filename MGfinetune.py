@@ -73,6 +73,7 @@ def format_data(example: dict[str, Any]) -> dict[str, Any]:
             "content": [
                 {
                     "type": "text",
+                    # label of 0 will map to: (A: no tumor present), label of 1 will map to: (B: tumor present)
                     "text": HISTOPATHOLOGY_CLASSES[example["label"]],
                 },
             ],
@@ -111,6 +112,8 @@ model_kwargs["quantization_config"] = BitsAndBytesConfig(
 )
 
 model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+
+# This is where .apply_chat_template looks back to
 processor = AutoProcessor.from_pretrained(model_id)
 
 # Use right padding to avoid issues during training
@@ -131,3 +134,24 @@ peft_config = LoraConfig(
     ],
 )
    
+
+def collate_fn(examples: list[dict[str, Any]]):
+    texts = []
+    images = []
+    for example in examples:
+        images.append([example["image"].convert("RGB")])
+        # Applies the chat template from messages and appends that to texts. 
+        # Texts is a list of prompts with both A / B options, and the correct choice A or B.
+        texts.append(processor.apply_chat_template(
+            example["messages"],
+            add_generation_prompt=False,
+            tokenize=False
+        ).strip())
+
+    # Tokenize the texts and process the images
+    # Contains 'input_ids'
+    batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+
+    # The labels are the input_ids, with the padding and image tokens masked in
+    # the loss computation
+    labels = batch["input_ids"].clone()
