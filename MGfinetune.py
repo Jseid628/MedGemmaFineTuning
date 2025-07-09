@@ -1,10 +1,14 @@
+import os
+print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
+import torch
+print("Visible CUDA devices:", torch.cuda.device_count())
 
 # For set up
 from datasets import load_dataset
 from typing import Any
 
 # For Loading Model
-import torch
+#import torch
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 
 # For fine tuning
