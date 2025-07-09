@@ -1,18 +1,20 @@
 import os
-print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
-import torch
-print("Visible CUDA devices:", torch.cuda.device_count())
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"  
+
 
 # For set up
 from datasets import load_dataset
 from typing import Any
 
 # For Loading Model
-#import torch
+import torch
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 
 # For fine tuning
 from peft import LoraConfig
+
+print("Number of GPUs visible:", torch.cuda.device_count())
+print("GPU name:", torch.cuda.get_device_name(0))
 
 # ---------------------- Set Up ---------------------- #
 
