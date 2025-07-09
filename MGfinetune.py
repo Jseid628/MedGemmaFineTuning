@@ -41,7 +41,6 @@ print(label)
 print(data['train'].features['label'])
 # ----------------------------------------------------------- #
 
-
 HISTOPATHOLOGY_CLASSES = [
     # One option for each class
     "A: no tumor present",
