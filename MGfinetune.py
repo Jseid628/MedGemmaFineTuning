@@ -1,9 +1,14 @@
 
+# For set up
 from datasets import load_dataset
 from typing import Any
 
-train_size = 9000  # @param {type: "number"}
-validation_size = 1000  # @param {type: "number"}
+# Other
+import torch
+from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
+
+train_size = 9000 
+validation_size = 1000 
 
 # Downloaded and organized a subset of the patchcamelyon data set (first 10K images) into
 # a folder called patchcamelyon_subset. Has sub folders "normal" and "tumor"
@@ -14,14 +19,16 @@ data = data.train_test_split(
     shuffle=True,
     seed=42,
 )
-# Use the test split as the validation set
+# rename the 'test' set to 'validation'
 data["validation"] = data.pop("test")
 
 # ------------ Optional: display dataset details ------------ #
 print(data) 
 # This is actually a dictionary - it contains {'image':blah, 'label':hmmm}
 print(f"data['train'][0]: {data['train'][0]}")
+# First image in the training data
 image = data['train'][0]['image']
+# First label in the training data
 label = data['train'][0]['label']
 image.save("sample_image.png")
 print("Image saved to sample_image.png")
@@ -71,3 +78,30 @@ def format_data(example: dict[str, Any]) -> dict[str, Any]:
 
 data = data.map(format_data)
 print(data['train'][0])
+
+# ---------------------- Loading Model ---------------------- #
+
+model_id = "google/medgemma-4b-it"
+
+# Check if GPU supports bfloat16
+if torch.cuda.get_device_capability()[0] < 8:
+    raise ValueError("GPU does not support bfloat16, please use a GPU that supports bfloat16.")
+else: 
+    print('GPU supports bfloat 16. You are good to go :)')
+
+# A dictionary of model arguments
+model_kwargs = dict(
+    attn_implementation="eager",
+    torch_dtype=torch.bfloat16,
+    device_map="auto",
+)
+
+
+# Add a dictionary entry 
+model_kwargs["quantization_config"] = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_use_double_quant=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=model_kwargs["torch_dtype"],
+    bnb_4bit_quant_storage=model_kwargs["torch_dtype"],
+)
