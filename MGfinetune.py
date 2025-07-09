@@ -3,9 +3,14 @@
 from datasets import load_dataset
 from typing import Any
 
-# Other
+# For Loading Model
 import torch
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
+
+# For fine tuning
+from peft import LoraConfig
+
+# ---------------------- Set Up ---------------------- #
 
 train_size = 9000 
 validation_size = 1000 
@@ -89,15 +94,14 @@ if torch.cuda.get_device_capability()[0] < 8:
 else: 
     print('GPU supports bfloat 16. You are good to go :)')
 
-# A dictionary of model arguments
+# A dictionary of model arguments - ie, 'attn_implementation' maps to 'eager'
 model_kwargs = dict(
     attn_implementation="eager",
     torch_dtype=torch.bfloat16,
     device_map="auto",
 )
 
-
-# Add a dictionary entry 
+# Add a dictionary entry 'quantization_config' - sets the values of 5 parameters in BitsAndBytesConfig() 
 model_kwargs["quantization_config"] = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_use_double_quant=True,
@@ -105,3 +109,25 @@ model_kwargs["quantization_config"] = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=model_kwargs["torch_dtype"],
     bnb_4bit_quant_storage=model_kwargs["torch_dtype"],
 )
+
+model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
+processor = AutoProcessor.from_pretrained(model_id)
+
+# Use right padding to avoid issues during training
+processor.tokenizer.padding_side = "right"
+
+# ----------------------  Set Up for Fine Tuning ---------------------- #
+
+peft_config = LoraConfig(
+    lora_alpha=16,
+    lora_dropout=0.05,
+    r=16,
+    bias="none",
+    target_modules="all-linear",
+    task_type="CAUSAL_LM",
+    modules_to_save=[
+        "lm_head",
+        "embed_tokens",
+    ],
+)
+   
