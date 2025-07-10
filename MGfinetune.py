@@ -138,7 +138,10 @@ peft_config = LoraConfig(
         "embed_tokens",
     ],
 )
-   
+
+# Step 1. Clone input_ids and assign to labels.
+# Step 2. Mask unnecessary info
+# Step 3. Add the now redacted info as a new entry in the batch called 'labels'
 
 def collate_fn(examples: list[dict[str, Any]]):
     texts = []
@@ -157,6 +160,31 @@ def collate_fn(examples: list[dict[str, Any]]):
     # Contains 'input_ids'
     batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
 
-    # The labels are the input_ids, with the padding and image tokens masked in
-    # the loss computation
+    # These labels are tokenized version of the input
     labels = batch["input_ids"].clone()
+
+    # Masking step begins here
+    special_tokens = processor.tokenizer.special_tokens_map
+
+    boi_token = special_tokens['boi_token']
+    eoi_token = special_tokens['eoi_token']
+
+    boi_token_id, eoi_token_id = processor.tokenizer.convert_tokens_to_ids([boi_token, eoi_token])
+
+    # We don't want to predict image values. Any info with image token is masked since part of image.
+    # Also masking padding tokens / other special tokens.
+    ignore_token_ids = {
+        processor.tokenizer.pad_token_id,
+        boi_token_id,
+        eoi_token_id,
+        262144
+    }
+
+    # **Tensor masking** operation for tokens not used in the loss computation.
+    for token_id in ignore_token_ids:
+        labels[label == token_id] = -100
+
+    # 'labels' now contains how we want the model to behave: 'user: Heres an image - is it A or B?'  'model: it is A' All other info masked in labels section of batch.
+    batch["labels"] = labels
+
+    return batch
