@@ -1,5 +1,6 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"  
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # optional 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 # For set up
@@ -12,9 +13,14 @@ from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndByte
 
 # For fine tuning
 from peft import LoraConfig
+from trl import SFTTrainer
 
-print("Number of GPUs visible:", torch.cuda.device_count())
-print("GPU name:", torch.cuda.get_device_name(0))
+# For setting training parameters
+from trl import SFTConfig
+
+print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
+print("torch sees this as device:", torch.cuda.current_device())
+print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
 
 # ---------------------- Set Up ---------------------- #
 
@@ -32,6 +38,10 @@ data = data.train_test_split(
 )
 # rename the 'test' set to 'validation'
 data["validation"] = data.pop("test")
+
+#Smaller to test pipeline
+data["train"] = data["train"].select(range(1000))
+data["validation"] = data["validation"].select(range(200))
 
 # ------------ Optional: display dataset details ------------ #
 print(data) 
@@ -104,7 +114,7 @@ else:
 model_kwargs = dict(
     attn_implementation="eager",
     torch_dtype=torch.bfloat16,
-    device_map="auto",
+    device_map={"": torch.device("cuda:0")},
 )
 
 # Add a dictionary entry 'quantization_config' - sets the values of 5 parameters in BitsAndBytesConfig() 
@@ -147,7 +157,7 @@ def collate_fn(examples: list[dict[str, Any]]):
     texts = []
     images = []
     for example in examples:
-        images.append([example["image"].convert("RGB")])
+        images.append(example["image"].convert("RGB"))
         # Applies the chat template from messages and appends that to texts. 
         # Texts is a list of prompts with both A / B options, and the correct choice A or B.
         texts.append(processor.apply_chat_template(
@@ -182,9 +192,49 @@ def collate_fn(examples: list[dict[str, Any]]):
 
     # **Tensor masking** operation for tokens not used in the loss computation.
     for token_id in ignore_token_ids:
-        labels[label == token_id] = -100
+        labels[labels == token_id] = -100
 
     # 'labels' now contains how we want the model to behave: 'user: Heres an image - is it A or B?'  'model: it is A' All other info masked in labels section of batch.
     batch["labels"] = labels
 
     return batch
+
+num_train_epochs = 1  # @param {type: "number"}
+learning_rate = 2e-4  # @param {type: "number"}
+
+args = SFTConfig(
+    output_dir="medgemma-4b-it-sft-lora-PatchCamelyon",            # Directory and Hub repository id to save the model to
+    num_train_epochs=num_train_epochs,                       # Number of training epochs
+    per_device_train_batch_size=4,                           # Batch size per device during training
+    per_device_eval_batch_size=4,                            # Batch size per device during evaluation
+    gradient_accumulation_steps=4,                           # Number of steps before performing a backward/update pass
+    gradient_checkpointing=True,                             # Enable gradient checkpointing to reduce memory usage
+    optim="adamw_torch_fused",                               # Use fused AdamW optimizer for better performance
+    logging_steps=50,                                        # Number of steps between logs
+    save_strategy="epoch",                                   # Save checkpoint every epoch
+    eval_strategy="steps",                                   # Evaluate every `eval_steps`
+    eval_steps=50,                                           # Number of steps between evaluations
+    learning_rate=learning_rate,                             # Learning rate based on QLoRA paper
+    bf16=True,                                               # Use bfloat16 precision
+    max_grad_norm=0.3,                                       # Max gradient norm based on QLoRA paper
+    warmup_ratio=0.03,                                       # Warmup ratio based on QLoRA paper
+    lr_scheduler_type="linear",                              # Use linear learning rate scheduler
+    push_to_hub=False,                                        # Push model to Hub
+    report_to="tensorboard",                                 # Report metrics to tensorboard
+    gradient_checkpointing_kwargs={"use_reentrant": False},  # Set gradient checkpointing to non-reentrant to avoid issues
+    dataset_kwargs={"skip_prepare_dataset": True},           # Skip default dataset preparation to preprocess manually
+    remove_unused_columns = False,                           # Columns are unused for training but needed for data collator
+    label_names=["labels"],                                  # Input keys that correspond to the labels
+)
+
+trainer = SFTTrainer(
+    model=model,
+    args=args,
+    train_dataset=data["train"],
+    eval_dataset=data["validation"].shuffle().select(range(200)),  # Use subset of validation set for faster run
+    peft_config=peft_config,
+    processing_class=processor,
+    data_collator=collate_fn,
+)
+
+print("Batch test:", next(iter(trainer.get_train_dataloader())))
