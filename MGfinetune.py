@@ -1,6 +1,6 @@
-import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # optional 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# Make sure I'm just using GPU 2.
+# import os 
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 
 # For set up
@@ -9,6 +9,7 @@ from typing import Any
 
 # For Loading Model
 import torch
+torch.cuda.empty_cache()
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 
 # For fine tuning
@@ -18,9 +19,10 @@ from trl import SFTTrainer
 # For setting training parameters
 from trl import SFTConfig
 
-print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
-print("torch sees this as device:", torch.cuda.current_device())
-print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
+# Checking to see which GPU I'm using
+# print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
+# print("torch sees this as device:", torch.cuda.current_device())
+# print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
 
 # ---------------------- Set Up ---------------------- #
 
@@ -114,7 +116,8 @@ else:
 model_kwargs = dict(
     attn_implementation="eager",
     torch_dtype=torch.bfloat16,
-    device_map={"": torch.device("cuda:0")},
+    device_map='balanced',
+    #tp_plan = 'auto'
 )
 
 # Add a dictionary entry 'quantization_config' - sets the values of 5 parameters in BitsAndBytesConfig() 
@@ -124,6 +127,7 @@ model_kwargs["quantization_config"] = BitsAndBytesConfig(
     bnb_4bit_quant_type="nf4",
     bnb_4bit_compute_dtype=model_kwargs["torch_dtype"],
     bnb_4bit_quant_storage=model_kwargs["torch_dtype"],
+    llm_int8_enable_fp32_cpu_offload=True, 
 )
 
 model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
@@ -205,8 +209,8 @@ learning_rate = 2e-4  # @param {type: "number"}
 args = SFTConfig(
     output_dir="medgemma-4b-it-sft-lora-PatchCamelyon",            # Directory and Hub repository id to save the model to
     num_train_epochs=num_train_epochs,                       # Number of training epochs
-    per_device_train_batch_size=4,                           # Batch size per device during training
-    per_device_eval_batch_size=4,                            # Batch size per device during evaluation
+    per_device_train_batch_size=1,                           # Batch size per device during training
+    per_device_eval_batch_size=1,                            # Batch size per device during evaluation
     gradient_accumulation_steps=4,                           # Number of steps before performing a backward/update pass
     gradient_checkpointing=True,                             # Enable gradient checkpointing to reduce memory usage
     optim="adamw_torch_fused",                               # Use fused AdamW optimizer for better performance
