@@ -139,7 +139,7 @@ processor = AutoProcessor.from_pretrained(model_id)
 # Use right padding to avoid issues during training
 processor.tokenizer.padding_side = "right"
 
-# ----------------------  Set Up for Fine Tuning ---------------------- #
+# ----------------------  Peft / Lora Configuration Settings ---------------------- #
 
 peft_config = LoraConfig(
     lora_alpha=16,
@@ -153,6 +153,8 @@ peft_config = LoraConfig(
         "embed_tokens",
     ],
 )
+
+# ----------------------  data collating function ---------------------- #
 
 # Step 1. Clone input_ids and assign to labels.
 # Step 2. Mask unnecessary info
@@ -219,6 +221,8 @@ def collate_fn(examples: list[dict[str, Any]]):
         "pixel_values": pixel_values,
         "labels": labels,
     }
+
+# ----------------------  parameters ---------------------- #
 
 num_train_epochs = 4  # @param {type: "number"}
 learning_rate = 2e-4  # @param {type: "number"}
