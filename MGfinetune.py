@@ -158,10 +158,11 @@ peft_config = LoraConfig(
 # Step 3. Add the now redacted info as a new entry in the batch called 'labels'
 
 def collate_fn(examples: list[dict[str, Any]]):
-
+    
     input_ids_list = []
     attention_mask_list = []
     pixel_values_list = []
+    token_type_ids_list = []
     
     for example in examples:
         image = example["image"].convert("RGB")
@@ -174,21 +175,27 @@ def collate_fn(examples: list[dict[str, Any]]):
         ).strip()
 
         processed = processor(text=text, images=image, return_tensors="pt", padding=True)
-        input_ids_list.append(processed['input_ids'][0])
-        attention_mask_list.append(processed['attention_mask'][0])
-        pixel_values_list.append(processed['pixel_values'][0])
 
+        # Add single processed example lists
+        input_ids_list.append(processed["input_ids"][0])
+        attention_mask_list.append(processed["attention_mask"][0])
+        token_type_ids_list.append(processed['token_type_ids'][0])
+        pixel_values_list.append(processed["pixel_values"][0])
 
-    # These labels are tokenized version of the input
-    labels = batch["input_ids"].clone()
+    # Pad sequences - after having added all examples. Ensures all examples have same length values for given keys.
+    input_ids = torch.nn.utils.rnn.pad_sequence(input_ids_list, batch_first=True, padding_value=processor.tokenizer.pad_token_id)
+    attention_mask = torch.nn.utils.rnn.pad_sequence(attention_mask_list, batch_first=True, padding_value=0)
+    token_type_ids = torch.nn.utils.rnn.pad_sequence(token_type_ids_list, batch_first=True, padding_value=0)
+    pixel_values = torch.stack(pixel_values_list)
 
-    # Masking step begins here
+    # We want to predict the text output part of the input. We will later mask the image part.
+    labels = input_ids.clone()
+
+    # Mask special tokens
     special_tokens = processor.tokenizer.special_tokens_map
-
-    boi_token = special_tokens['boi_token']
-    eoi_token = special_tokens['eoi_token']
-
-    boi_token_id, eoi_token_id = processor.tokenizer.convert_tokens_to_ids([boi_token, eoi_token])
+    boi_token_id, eoi_token_id = processor.tokenizer.convert_tokens_to_ids([
+        special_tokens['boi_token'], special_tokens['eoi_token']
+    ])
 
     # We don't want to predict image values. Any info with image token is masked since part of image.
     # Also masking padding tokens / other special tokens.
@@ -196,17 +203,21 @@ def collate_fn(examples: list[dict[str, Any]]):
         processor.tokenizer.pad_token_id,
         boi_token_id,
         eoi_token_id,
-        262144
+        262144,  # Optional: image token
     }
 
     # **Tensor masking** operation for tokens not used in the loss computation.
+    # 'labels' now contains how we want the model to behave: 'user: Heres an image - is it A or B?'  'model: it is A' All other info masked in labels section of batch.
     for token_id in ignore_token_ids:
         labels[labels == token_id] = -100
 
-    # 'labels' now contains how we want the model to behave: 'user: Heres an image - is it A or B?'  'model: it is A' All other info masked in labels section of batch.
-    batch["labels"] = labels
-
-    return batch
+    return {
+        "input_ids": input_ids,
+        "attention_mask": attention_mask,
+        "token_type_ids": token_type_ids,
+        "pixel_values": pixel_values,
+        "labels": labels,
+    }
 
 num_train_epochs = 1  # @param {type: "number"}
 learning_rate = 2e-4  # @param {type: "number"}
