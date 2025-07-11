@@ -1,5 +1,5 @@
 import os 
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 
 # For set up
@@ -239,7 +239,7 @@ args = SFTConfig(
     gradient_accumulation_steps=4,                           # Number of steps before performing a backward/update pass
     gradient_checkpointing=True,                             # Enable gradient checkpointing to reduce memory usage
     optim="adamw_torch_fused",                               # Use fused AdamW optimizer for better performance
-    logging_steps=50,                                        # Number of steps between logs
+    logging_steps=10,                                        # Number of steps between logs
     save_strategy="epoch",                                   # Save checkpoint every epoch
     eval_strategy="steps",                                   # Evaluate every `eval_steps`
     eval_steps=50,                                           # Number of steps between evaluations
