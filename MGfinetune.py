@@ -106,17 +106,17 @@ data = data.map(format_data)
 model_id = "google/medgemma-4b-it"
 
 # Check if GPU supports bfloat16
+# major must be 8 to support bfloat16
 if torch.cuda.get_device_capability()[0] < 8:
     raise ValueError("GPU does not support bfloat16, please use a GPU that supports bfloat16.")
 else: 
     print('GPU supports bfloat 16. You are good to go :)')
 
-# A dictionary of model arguments - ie, 'attn_implementation' maps to 'eager'
 model_kwargs = dict(
     attn_implementation="eager",
     torch_dtype=torch.bfloat16,
+    # optimal device map when using one GPU.
     device_map='balanced',
-    #tp_plan = 'auto'
 )
 
 # Add a dictionary entry 'quantization_config' - sets the values of 5 parameters in BitsAndBytesConfig() 
@@ -129,6 +129,8 @@ model_kwargs["quantization_config"] = BitsAndBytesConfig(
     llm_int8_enable_fp32_cpu_offload=True, 
 )
 
+# model is assigned the pretrained model (google/medgemma-4b-it) with the specifications (model_kwargs)
+# ** unpacks the dictionary values as arguments to the from_pretrained function
 model = AutoModelForImageTextToText.from_pretrained(model_id, **model_kwargs)
 
 # This is where .apply_chat_template looks back to
