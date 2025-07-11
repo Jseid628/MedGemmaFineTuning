@@ -185,11 +185,13 @@ def collate_fn(examples: list[dict[str, Any]]):
         token_type_ids_list.append(processed['token_type_ids'][0])
         pixel_values_list.append(processed["pixel_values"][0])
 
-    # Pad sequences - after having added all examples. Ensures all examples have same length values for given keys.
+    # Pad sequences - after having added all examples to the lists. Ensures all examples have same length values for given keys.
     input_ids = torch.nn.utils.rnn.pad_sequence(input_ids_list, batch_first=True, padding_value=processor.tokenizer.pad_token_id)
     attention_mask = torch.nn.utils.rnn.pad_sequence(attention_mask_list, batch_first=True, padding_value=0)
     token_type_ids = torch.nn.utils.rnn.pad_sequence(token_type_ids_list, batch_first=True, padding_value=0)
     pixel_values = torch.stack(pixel_values_list)
+
+    # ------------------- Label / Masking Step ------------------- #
 
     # We want to predict the text output part of the input. We will later mask the image part.
     labels = input_ids.clone()
@@ -213,6 +215,8 @@ def collate_fn(examples: list[dict[str, Any]]):
     # 'labels' now contains how we want the model to behave: 'user: Heres an image - is it A or B?'  'model: it is A' All other info masked in labels section of batch.
     for token_id in ignore_token_ids:
         labels[labels == token_id] = -100
+
+    # ------------------------------------------------------------- #
 
     return {
         "input_ids": input_ids,
