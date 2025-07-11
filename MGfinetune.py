@@ -1,4 +1,3 @@
-
 import os 
 os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
@@ -143,7 +142,7 @@ processor.tokenizer.padding_side = "right"
 peft_config = LoraConfig(
     lora_alpha=16,
     lora_dropout=0.05,
-    r=16,
+    r=8,
     bias="none",
     target_modules="all-linear",
     task_type="CAUSAL_LM",
@@ -219,7 +218,7 @@ def collate_fn(examples: list[dict[str, Any]]):
         "labels": labels,
     }
 
-num_train_epochs = 1  # @param {type: "number"}
+num_train_epochs = 4  # @param {type: "number"}
 learning_rate = 2e-4  # @param {type: "number"}
 
 args = SFTConfig(
@@ -257,4 +256,4 @@ trainer = SFTTrainer(
     data_collator=collate_fn,
 )
 
-print("Batch test:", next(iter(trainer.get_train_dataloader())))
+trainer.train()
