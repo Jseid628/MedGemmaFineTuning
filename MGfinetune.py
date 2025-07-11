@@ -1,6 +1,6 @@
-# Make sure I'm just using GPU 2.
-# import os 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+
+import os 
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 
 # For set up
@@ -46,17 +46,17 @@ data["train"] = data["train"].select(range(1000))
 data["validation"] = data["validation"].select(range(200))
 
 # ------------ Optional: display dataset details ------------ #
-print(data) 
-# This is actually a dictionary - it contains {'image':blah, 'label':hmmm}
-print(f"data['train'][0]: {data['train'][0]}")
-# First image in the training data
-image = data['train'][0]['image']
-# First label in the training data
-label = data['train'][0]['label']
-image.save("sample_image.png")
-print("Image saved to sample_image.png")
-print(label)
-print(data['train'].features['label'])
+# print(data) 
+# # This is actually a dictionary - it contains {'image':blah, 'label':hmmm}
+# print(f"data['train'][0]: {data['train'][0]}")
+# # First image in the training data
+# image = data['train'][0]['image']
+# # First label in the training data
+# label = data['train'][0]['label']
+# image.save("sample_image.png")
+# print("Image saved to sample_image.png")
+# print(label)
+# print(data['train'].features['label'])
 # ----------------------------------------------------------- #
 
 HISTOPATHOLOGY_CLASSES = [
@@ -100,7 +100,7 @@ def format_data(example: dict[str, Any]) -> dict[str, Any]:
     return example
 
 data = data.map(format_data)
-print(data['train'][0])
+# print(data['train'][0])
 
 # ---------------------- Loading Model ---------------------- #
 
@@ -158,21 +158,26 @@ peft_config = LoraConfig(
 # Step 3. Add the now redacted info as a new entry in the batch called 'labels'
 
 def collate_fn(examples: list[dict[str, Any]]):
-    texts = []
-    images = []
+
+    input_ids_list = []
+    attention_mask_list = []
+    pixel_values_list = []
+    
     for example in examples:
-        images.append(example["image"].convert("RGB"))
+        image = example["image"].convert("RGB")
         # Applies the chat template from messages and appends that to texts. 
         # Texts is a list of prompts with both A / B options, and the correct choice A or B.
-        texts.append(processor.apply_chat_template(
+        text = processor.apply_chat_template(
             example["messages"],
             add_generation_prompt=False,
             tokenize=False
-        ).strip())
+        ).strip()
 
-    # Tokenize the texts and process the images
-    # Contains 'input_ids'
-    batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+        processed = processor(text=text, images=image, return_tensors="pt", padding=True)
+        input_ids_list.append(processed['input_ids'][0])
+        attention_mask_list.append(processed['attention_mask'][0])
+        pixel_values_list.append(processed['pixel_values'][0])
+
 
     # These labels are tokenized version of the input
     labels = batch["input_ids"].clone()
@@ -209,8 +214,8 @@ learning_rate = 2e-4  # @param {type: "number"}
 args = SFTConfig(
     output_dir="medgemma-4b-it-sft-lora-PatchCamelyon",            # Directory and Hub repository id to save the model to
     num_train_epochs=num_train_epochs,                       # Number of training epochs
-    per_device_train_batch_size=1,                           # Batch size per device during training
-    per_device_eval_batch_size=1,                            # Batch size per device during evaluation
+    per_device_train_batch_size=4,                           # Batch size per device during training
+    per_device_eval_batch_size=4,                            # Batch size per device during evaluation
     gradient_accumulation_steps=4,                           # Number of steps before performing a backward/update pass
     gradient_checkpointing=True,                             # Enable gradient checkpointing to reduce memory usage
     optim="adamw_torch_fused",                               # Use fused AdamW optimizer for better performance
