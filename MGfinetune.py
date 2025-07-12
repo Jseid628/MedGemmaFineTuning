@@ -18,7 +18,7 @@ from trl import SFTTrainer
 # For setting training parameters
 from trl import SFTConfig
 
-# Checking to see which GPU I'm using
+# Checking to see which GPU we are using
 # print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
 # print("torch sees this as device:", torch.cuda.current_device())
 # print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
@@ -45,13 +45,9 @@ data["train"] = data["train"].select(range(1000))
 data["validation"] = data["validation"].select(range(200))
 
 data = data.map(format_data)
-# print(data['train'][0])
 
-# ---------------------- Loading Model from utils.py ---------------------- #
-
+# Load model from utils.py
 model, processor = load_model_and_processor()
-
-# ----------------------  Peft / Lora Configuration Settings ---------------------- #
 
 peft_config = LoraConfig(
     lora_alpha=16,

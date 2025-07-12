@@ -42,7 +42,6 @@ def format_data(example: dict[str, Any]) -> dict[str, Any]:
     # Returns a dict with the same structure - but now {'image':blah, 'label':hmmm, 'message':blumph}
     return example
 
-
 def load_model_and_processor(model_id = "google/medgemma-4b-it"):
     # Check if GPU supports bfloat16
     # major must be 8 to support bfloat16

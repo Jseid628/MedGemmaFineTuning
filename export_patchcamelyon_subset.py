@@ -25,4 +25,5 @@ for idx, example in enumerate(subset):
     if idx % 1000 == 0:
         print(f"Saved {idx} images...")
 
-print("✅ Done exporting images.")
+print("Done exporting images.")
+
