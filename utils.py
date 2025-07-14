@@ -78,3 +78,16 @@ def load_model_and_processor(model_id = "google/medgemma-4b-it"):
     processor.tokenizer.padding_side = "right"
 
     return model, processor
+
+def compute_metrics(predictions: list[int]) -> dict[str, float]:
+    metrics = {}
+    metrics.update(accuracy_metric.compute(
+        predictions=predictions,
+        references=REFERENCES,
+    ))
+    metrics.update(f1_metric.compute(
+        predictions=predictions,
+        references=REFERENCES,
+        average="weighted",
+    ))
+    return metrics
