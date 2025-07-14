@@ -1,6 +1,9 @@
+import os 
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 # Will be evaluating the finetuned model here
 
+import torch
 import utils
 from datasets import load_dataset
 from datasets import ClassLabel
@@ -8,14 +11,12 @@ from transformers import AutoModelForImageTextToText, AutoProcessor, PaliGemmaFo
 from peft import PeftModel
 import evaluate
 from typing import Any
+from tqdm import tqdm
 
-model, processor = utils.load_model_and_processor()
-model.eval()
-
+# Renaming for my own sanity
 raw = load_dataset("./patchcamelyon_test")
 test_data = raw["train"]
 test_data = test_data.shuffle(seed=42).select(range(1000))
-
 
 HISTOPATHOLOGY_CLASSES = [
     # One option for each class
@@ -50,6 +51,20 @@ f1_metric = evaluate.load("f1")
 
 # Ground truth labels
 REFERENCES = test_data["label"]
+
+# Metrics
+def compute_metrics(predictions: list[int]) -> dict[str, float]:
+    metrics = {}
+    metrics.update(accuracy_metric.compute(
+        predictions=predictions,
+        references=REFERENCES,
+    ))
+    metrics.update(f1_metric.compute(
+        predictions=predictions,
+        references=REFERENCES,
+        average="weighted",
+    ))
+    return metrics
 
 # ----------- Post Processing ---------- #
 
@@ -103,11 +118,11 @@ ft_outputs = ft_pipe(
     text=test_data["messages"],
     images=test_data["image"],
     max_new_tokens=20,
-    batch_size=64,
+    batch_size=4,
     return_full_text=False,
 )
 
 ft_predictions = [postprocess(out, do_full_match=True) for out in ft_outputs]
 
-ft_metrics = utils.compute_metrics(ft_predictions)
+ft_metrics = compute_metrics(ft_predictions)
 print(f"Fine-tuned metrics: {ft_metrics}")

@@ -48,7 +48,7 @@ def load_model_and_processor(model_id = "google/medgemma-4b-it"):
     if torch.cuda.get_device_capability()[0] < 8:
         raise ValueError("GPU does not support bfloat16, please use a GPU that supports bfloat16.")
     else: 
-        print('GPU supports bfloat 16. You are good to go :)')
+        print('Loading Model and Processor... GPU supports bfloat 16. You are good to go :)')
 
     model_kwargs = dict(
         attn_implementation="eager",
@@ -78,16 +78,3 @@ def load_model_and_processor(model_id = "google/medgemma-4b-it"):
     processor.tokenizer.padding_side = "right"
 
     return model, processor
-
-def compute_metrics(predictions: list[int]) -> dict[str, float]:
-    metrics = {}
-    metrics.update(accuracy_metric.compute(
-        predictions=predictions,
-        references=REFERENCES,
-    ))
-    metrics.update(f1_metric.compute(
-        predictions=predictions,
-        references=REFERENCES,
-        average="weighted",
-    ))
-    return metrics

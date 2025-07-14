@@ -18,6 +18,10 @@ from trl import SFTTrainer
 # For setting training parameters
 from trl import SFTConfig
 
+# from utils
+from utils import format_data
+from utils import load_model_and_processor
+
 # Checking to see which GPU we are using
 # print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
 # print("torch sees this as device:", torch.cuda.current_device())
@@ -40,9 +44,9 @@ data = data.train_test_split(
 # rename the 'test' set to 'validation'
 data["validation"] = data.pop("test")
 
-#Smaller to test pipeline
-data["train"] = data["train"].select(range(1000))
-data["validation"] = data["validation"].select(range(200))
+#Smaller subset to test pipeline if desired
+# data["train"] = data["train"].select(range(1000))
+# data["validation"] = data["validation"].select(range(200))
 
 data = data.map(format_data)
 
