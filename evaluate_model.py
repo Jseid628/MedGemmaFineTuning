@@ -42,7 +42,8 @@ def format_test_data(example: dict[str, Any]) -> dict[str, Any]:
     return example
 
 def main():
-    # Renaming for my own sanity
+    # Renaming for my own sanity.
+    # Hugging Face load_dataset assigns the data to 'train' automatically.
     raw = load_dataset("./patchcamelyon_test")
     test_data = raw["train"]
     test_data = test_data.shuffle(seed=42).select(range(1000))
@@ -53,8 +54,22 @@ def main():
     # format test_data
     test_data = test_data.map(format_test_data)
 
-    # ----------- For Post Processing ---------- #
+    # ---------------- Loading Saved Model -------------- # 
 
+    model = AutoModelForImageTextToText.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
+    processor = AutoProcessor.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
+    model.eval()
+
+    # ----------- Loading Model from Checkpoint ----------- #
+
+    # base_model, processor = utils.load_model_and_processor()
+    # lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
+
+    # model = PeftModel.from_pretrained(base_model, lora_check_point_path)
+    # model = model.merge_and_unload()  # Applies the LoRA weights to the original model
+    # model.eval()
+
+    # ----------- Post Processing ---------- #
     # Rename the class names to the tissue classes, `X: tissue type`
     test_data = test_data.cast_column(
         "label",
@@ -76,21 +91,6 @@ def main():
             if label in response_text or ALT_LABELS[label] in response_text:
                 return LABEL_FEATURE.str2int(label)
         return -1
-
-    # ---------------- Loading Saved Model -------------- # 
-
-    model = AutoModelForImageTextToText.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
-    processor = AutoProcessor.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
-    model.eval()
-
-    # ----------- Loading Model from Checkpoint ----------- #
-
-    # base_model, processor = utils.load_model_and_processor()
-    # lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
-
-    # model = PeftModel.from_pretrained(base_model, lora_check_point_path)
-    # model = model.merge_and_unload()  # Applies the LoRA weights to the original model
-    # model.eval()
 
     # ------------- Generate Finetuned Outputs ------------- #
 
