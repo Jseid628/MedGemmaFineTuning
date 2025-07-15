@@ -143,6 +143,7 @@ num_train_epochs = 4  # @param {type: "number"}
 learning_rate = 2e-4  # @param {type: "number"}
 
 args = SFTConfig(
+    
     output_dir="medgemma-4b-it-sft-lora-PatchCamelyon",            # Directory and Hub repository id to save the model to
     num_train_epochs=num_train_epochs,                       # Number of training epochs
     per_device_train_batch_size=4,                           # Batch size per device during training
@@ -178,3 +179,14 @@ trainer = SFTTrainer(
 )
 
 trainer.train()
+
+# ---- Save the merged final model ----
+
+# Merge the LoRA weights into the base model
+model = model.merge_and_unload()
+
+# Update the trainer with the merged model
+trainer.model = model
+
+# Save the final merged model
+trainer.save_model("medgemma-4b-it-sft-lora-PatchCamelyon-final")

@@ -90,15 +90,22 @@ def postprocess(prediction: list[dict[str, str]], do_full_match: bool=False) -> 
             return LABEL_FEATURE.str2int(label)
     return -1
 
-# ----------- Loading Fine Tuned Model ----------- #
 
-base_model, processor = utils.load_model_and_processor()
+# ---------------- Loading Saved Model -------------- # 
 
-lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
-
-model = PeftModel.from_pretrained(base_model, lora_check_point_path)
-model = model.merge_and_unload()  # Applies the LoRA weights to the original model
+model = AutoModelForImageTextToText.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
+processor = AutoProcessor.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
 model.eval()
+
+# ----------- Loading Model from Checkpoint ----------- #
+
+# base_model, processor = utils.load_model_and_processor()
+
+# lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
+
+# model = PeftModel.from_pretrained(base_model, lora_check_point_path)
+# model = model.merge_and_unload()  # Applies the LoRA weights to the original model
+# model.eval()
 
 # -------- Evaluation Pipeline -------- #
 
