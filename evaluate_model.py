@@ -1,8 +1,6 @@
 import os 
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
-# Will be evaluating the finetuned model here
-
 import torch
 import utils
 from datasets import load_dataset
@@ -100,7 +98,6 @@ model.eval()
 # ----------- Loading Model from Checkpoint ----------- #
 
 # base_model, processor = utils.load_model_and_processor()
-
 # lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
 
 # model = PeftModel.from_pretrained(base_model, lora_check_point_path)
