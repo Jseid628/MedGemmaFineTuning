@@ -82,9 +82,11 @@ def main():
         (label, f"({label.replace(': ', ') ')}") for label in HISTOPATHOLOGY_CLASSES
     ])
 
+    # do_full_match is set to True
     def postprocess(prediction: list[dict[str, str]], do_full_match: bool=False) -> int:
         response_text = prediction[0]["generated_text"]
         if do_full_match:
+            # eg - if response_text = 'A: no tumor present', then will return 0.
             return LABEL_FEATURE.str2int(response_text)
         for label in HISTOPATHOLOGY_CLASSES:
             # Search for `X: tissue type` or `(X) tissue type` in the response
