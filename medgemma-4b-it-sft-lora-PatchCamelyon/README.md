@@ -4,8 +4,8 @@ library_name: transformers
 model_name: medgemma-4b-it-sft-lora-PatchCamelyon
 tags:
 - generated_from_trainer
-- trl
 - sft
+- trl
 licence: license
 ---
 
