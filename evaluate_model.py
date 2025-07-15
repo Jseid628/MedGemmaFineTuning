@@ -60,15 +60,6 @@ def main():
     processor = AutoProcessor.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
     model.eval()
 
-    # ----------- Loading Model from Checkpoint ----------- #
-
-    # base_model, processor = utils.load_model_and_processor()
-    # lora_check_point_path = './medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-252'
-
-    # model = PeftModel.from_pretrained(base_model, lora_check_point_path)
-    # model = model.merge_and_unload()  # Applies the LoRA weights to the original model
-    # model.eval()
-
     # ----------- Post Processing ---------- #
     # Rename the class names to the tissue classes, `X: tissue type`
     test_data = test_data.cast_column(
