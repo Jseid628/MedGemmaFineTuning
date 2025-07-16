@@ -2,6 +2,8 @@ from typing import Any
 import torch
 from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 
+# --------------- patchcamelyon formatting function --------------- #
+
 HISTOPATHOLOGY_CLASSES = [
     # One option for each class
     "A: no tumor present",
@@ -13,7 +15,7 @@ PROMPT = f"Is a tumor present in this histopathology image?\n{options}"
 
 # 'example' is the name of the input here - input is a dict.
 # The key for this dict is a str and the value can be of Any type
-def format_data(example: dict[str, Any]) -> dict[str, Any]:
+def format_data_patchcamelyon(example: dict[str, Any]) -> dict[str, Any]:
     # adds a new entry to the dict
     example["messages"] = [
         {
@@ -41,6 +43,47 @@ def format_data(example: dict[str, Any]) -> dict[str, Any]:
     ]
     # Returns a dict with the same structure - but now {'image':blah, 'label':hmmm, 'message':blumph}
     return example
+
+# --------------- diabetic retinopathy formatting function --------------- #
+
+DR_CLASSES = [
+    "A: Diabetic retinopathy present",
+    "B: No diabetic retinopathy present"
+]
+
+options = "\n".join(DR_CLASSES)
+PROMPT = f"Is diabetic retinopathy present in this image?\n{options}"
+
+def format_data_exeye(example: dict[str, Any]) -> dict[str, Any]:
+    # adds a new entry to the dict
+    example["messages"] = [
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                },
+                {
+                    "type": "text",
+                    "text": PROMPT,
+                },
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": [
+                {
+                    "type": "text",
+                    # label of 0 will map to: (A: no tumor present), label of 1 will map to: (B: tumor present)
+                    "text": DR_CLASSES[example['label']],
+                },
+            ],
+        },
+    ]
+    # Returns a dict with the same structure - but now {'image':blah, 'label':hmmm, 'message':blumph}
+    return example
+
+# ---------------- model loading function ---------------- #
 
 def load_model_and_processor(model_id = "google/medgemma-4b-it"):
     # Check if GPU supports bfloat16
