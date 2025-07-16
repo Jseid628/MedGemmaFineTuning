@@ -1,13 +1,13 @@
 # Imports
 import os 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 import torch
 import utils
 from datasets import load_dataset
 from datasets import ClassLabel
 from transformers import AutoModelForImageTextToText, AutoProcessor, pipeline
-# from transformers import PaliGemmaForConditionalGeneration - if loading from checkpoint
+from transformers import PaliGemmaForConditionalGeneration
 from peft import PeftModel
 import evaluate
 from typing import Any
@@ -46,7 +46,7 @@ def main():
     # Hugging Face load_dataset assigns the data to 'train' automatically.
     raw = load_dataset("./patchcamelyon_test")
     test_data = raw["train"]
-    test_data = test_data.shuffle(seed=42).select(range(1000))
+    test_data = test_data.shuffle(seed=42).select(range(100))
 
     # Ground truth labels
     ground_truth_labels = test_data["label"]
@@ -54,12 +54,9 @@ def main():
     # format test_data
     test_data = test_data.map(format_test_data)
 
-    # ---------------- Loading Saved Model -------------- # 
-
-    model = AutoModelForImageTextToText.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
-    processor = AutoProcessor.from_pretrained("medgemma-4b-it-sft-lora-PatchCamelyon-final")
+    # ---------------- Loading Saved Model -------------- #
+    model, processor = utils.load_model_and_processor("./medgemma-4b-it-sft-lora-PatchCamelyon/checkpoint-2252")
     model.eval()
-
     # ----------- Post Processing ---------- #
     # Rename the class names to the tissue classes, `X: tissue type`
     test_data = test_data.cast_column(
@@ -108,7 +105,7 @@ def main():
     )
 
     # The finetuned model's predictions
-    ft_predictions = [postprocess(out, do_full_match=True) for out in ft_outputs]
+    ft_predictions = [postprocess(out, do_full_match=False) for out in ft_outputs]
 
     # -------- Evaluation -------- #
 
