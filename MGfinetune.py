@@ -22,10 +22,13 @@ from trl import SFTConfig
 from utils import format_data
 from utils import load_model_and_processor
 
-# Checking to see which GPU we are using
-# print("CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
-# print("torch sees this as device:", torch.cuda.current_device())
-# print("device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--data_path', required=True, help='Path to training data')
+parser.add_argument('--output_dir', required=True, help='Output directory for model')
+parser.add_argument('--final_model_dir', default='base_model', help='Base model name')
+args = parser.parse_args()
 
 # ---------------------- Set Up ---------------------- #
 
@@ -34,7 +37,7 @@ validation_size = 1000
 
 # Downloaded and organized a subset of the patchcamelyon data set (first 10K images) into
 # a folder called patchcamelyon_subset. Has sub folders "normal" and "tumor"
-data = load_dataset("./patchcamelyon_subset", split="train")
+data = load_dataset(args.data_path, split="train")
 data = data.train_test_split(
     train_size=train_size,
     test_size=validation_size,
@@ -144,7 +147,7 @@ learning_rate = 2e-4  # @param {type: "number"}
 
 args = SFTConfig(
     
-    output_dir="medgemma-4b-it-sft-lora-PatchCamelyon",            # Directory and Hub repository id to save the model to
+    output_dir=args.output_dir,            # Directory and Hub repository id to save the model to
     num_train_epochs=num_train_epochs,                       # Number of training epochs
     per_device_train_batch_size=4,                           # Batch size per device during training
     per_device_eval_batch_size=4,                            # Batch size per device during evaluation
@@ -189,4 +192,4 @@ model = model.merge_and_unload()
 trainer.model = model
 
 # Save the final merged model
-trainer.save_model("medgemma-4b-it-sft-lora-PatchCamelyon-final")
+trainer.save_model(args.final_model_dir)
