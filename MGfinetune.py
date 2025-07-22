@@ -51,7 +51,17 @@ data["validation"] = data.pop("test")
 # data["train"] = data["train"].select(range(1000))
 # data["validation"] = data["validation"].select(range(200))
 
-data = data.map(format_data)
+# So the appropriate formatting function is used
+def get_formatter(data_path):
+    if 'patchcamelyon' in data_path.lower():
+        return format_data_patchcamelyon
+    if 'externaleye' in data_path.lower():
+        return format_data_exeye
+    else:
+        raise ValueError(f"No formatter found for dataset: {data_path}")
+
+formatter = get_formatter(args.data_path)
+data = data.map(formatter)
 
 # Load model from utils.py
 model, processor = load_model_and_processor()

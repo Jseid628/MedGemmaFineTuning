@@ -1,6 +1,6 @@
 # Imports
 import os 
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 import torch
 import utils
@@ -46,7 +46,7 @@ def main():
     # Hugging Face load_dataset assigns the data to 'train' automatically.
     raw = load_dataset("./patchcamelyon_test")
     test_data = raw["train"]
-    test_data = test_data.shuffle(seed=42).select(range(100))
+    test_data = test_data.shuffle(seed=42).select(range(1000))
 
     # Ground truth labels
     ground_truth_labels = test_data["label"]

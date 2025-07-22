@@ -47,8 +47,8 @@ def format_data_patchcamelyon(example: dict[str, Any]) -> dict[str, Any]:
 # --------------- diabetic retinopathy formatting function --------------- #
 
 DR_CLASSES = [
-    "A: Diabetic retinopathy present",
-    "B: No diabetic retinopathy present"
+    "A: No diabetic retinopathy present",
+    "B: Diabetic retinopathy present"
 ]
 
 options = "\n".join(DR_CLASSES)
@@ -74,15 +74,14 @@ def format_data_exeye(example: dict[str, Any]) -> dict[str, Any]:
             "content": [
                 {
                     "type": "text",
-                    # label of 0 will map to: (A: no tumor present), label of 1 will map to: (B: tumor present)
-                    "text": DR_CLASSES[example['label']],
+                    # if example['label'] = 0, then will map to "A: no diabetic retinopathy present"
+                    "text": DR_CLASSES[example['label']], 
                 },
             ],
         },
     ]
     # Returns a dict with the same structure - but now {'image':blah, 'label':hmmm, 'message':blumph}
     return example
-
 # ---------------- model loading function ---------------- #
 
 def load_model_and_processor(model_id = "google/medgemma-4b-it"):
